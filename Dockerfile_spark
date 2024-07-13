@@ -1,0 +1,17 @@
+# 기본 Spark 이미지
+FROM bitnami/spark:latest
+
+# 유지보수자 정보
+LABEL maintainer="your_email@example.com"
+
+# Python 라이브러리 설치
+# RUN apt-get update && \
+#     apt-get install -y python3-pip && \
+#     pip3 install pandas numpy python-kis
+
+
+USER root
+RUN apt-get update && apt-get install -y vim
+RUN apt-get install -y gcc python3-dev wget
+RUN apt-get clean
+RUN pip3 install pandas numpy python-kis

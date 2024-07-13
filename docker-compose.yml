@@ -1,0 +1,184 @@
+version: '3'
+
+x-spark-common: &spark-common
+  image: bitnami/spark:latest
+  build:
+    context: .
+    dockerfile: Dockerfile_spark
+  volumes:
+    - ./jobs:/opt/bitnami/spark/jobs
+    - ./data:/opt/bitnami/spark/data
+    - ./resources:/opt/bitnami/spark/resources
+  networks:
+    - default-network
+  ## 20240704 permission denied 떠서 작업함. 
+  command: >
+      sh -c "chown -R root:root /opt/bitnami/spark/data && chmod -R 775 /opt/bitnami/spark/data
+x-airflow-common: &airflow-common
+  build:
+    context: .
+    dockerfile: Dockerfile
+  env_file:
+    - airflow.env
+  
+  volumes:
+    - ./jobs:/opt/airflow/jobs
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./data:/opt/bitnami/spark/data
+    - ./resources:/opt/bitnami/spark/resources
+  depends_on:
+    - postgres
+  networks:
+    - default-network
+
+
+services:
+  spark-master:
+    <<: *spark-common
+    hostname: spark-master
+    command: bin/spark-class org.apache.spark.deploy.master.Master
+    expose:
+      - "7077"
+    ports:
+      - "9090:8080"
+      - "7077:7077"
+      - "4444:4040"
+
+  spark-worker-1:
+    <<: *spark-common
+    command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    depends_on:
+      - spark-master
+    environment:
+      SPARK_MODE: worker
+      SPARK_WORKER_CORES: 2
+      SPARK_WORKER_MEMORY: 1g
+      SPARK_MASTER_URL: spark://spark-master:7077
+
+  spark-worker-2:
+    <<: *spark-common
+    command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    depends_on:
+      - spark-master
+    environment:
+      SPARK_MODE: worker
+      SPARK_WORKER_CORES: 2
+      SPARK_WORKER_MEMORY: 1g
+      SPARK_MASTER_URL: spark://spark-master:7077
+
+  #Jupyter notebook
+  # jupyter-spark:
+  #   image: minz95/de2024:jupyter
+  #   #build:
+  #   #  dockerfile: jupyter/Dockerfile
+  #   networks:
+  #     - default-network
+  #   ports:
+  #     - "8888:8888"
+  #     - "4040-4080:4040-4080"
+  #   volumes:
+  #     - ./notebooks:/home/jovyan/work
+  #     - ./data:/home/jovyan/data
+  #     - ./jobs:/home/jovyan/jobs
+  #     - ./resources:/home/jovyan/resources
+  #   environment:
+  #     - JUPYTER_TOKEN=password
+  #Jupyter notebook 
+  ## 주피터 노트북 도 하나의 서버의 형태로 구현되기 때문
+  # jupyter-spark:
+  #   image: minz95/de2024:jupyter
+  #   platform :  linux/arm64
+  #   networks:
+  #     - default-network
+  #   ports:
+  #     - "8888:8888"
+  #     - "4041-4081:4040-4080"
+  #   volumes:
+  #     - ./notebooks:/home/jovyan/work
+  #     - ./data:/home/jovyan/data
+  #     - ./jobs:/home/jovyan/jobs
+  #     - ./resources:/home/jovyan/resources
+      
+      
+  #     # # 아래는 vscode 에서 실행할때 
+  #     # - ./notebooks:/home/jovyan/work
+  #     # - ./data:/home/jovyan/data
+  #     # - ./jobs:/home/jovyan/jobs
+  #     # - ./resources:/home/jovyan/resources 
+  #   environment:
+  #     - JUPYTER_TOKEN=password
+      # - JAVA_HOME=/usr/lib/jvm/default-java ## 20240526 vscode내에서 실행하기 위해 설정 
+      # - SPARK_HOME=/path/to/spark ## 20240526 vscode내에서 실행하기 위해 설정 
+      # - PATH=$PATH:$SPARK_HOME/bin:$JAVA_HOME/bin ## 20240526 vscode내에서 실행하기 위해 설정 
+
+
+  es:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.4.3
+    networks:
+      - default-network
+    environment:
+      - node.name=es
+      - discovery.type=single-node
+      - discovery.seed_hosts=es
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      - cluster.routing.allocation.disk.threshold_enabled=false
+      - ELASTIC_PASSWORD=password
+    mem_limit: 1073741824
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./es-data:/usr/share/es/data
+    ports:
+      - 9200:9200
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.4.3
+    networks:
+      - default-network
+    environment:
+      - SERVERNAME=kibana
+      - ELASTICSEARCH_HOSTS=http://es:9200
+      - ELASTICSEARCH_USERNAME=kibana
+      - ELASTICSEARCH_PASSWORD=password
+    ports:
+      - 5601:5601
+    depends_on:
+      - es
+
+  postgres:
+    image: postgres:14.0
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    networks:
+      - default-network
+
+  webserver:
+    <<: *airflow-common
+    restart: always 
+    user: "0:0"
+    ports:
+      - "8081:8080"
+    depends_on:
+      - scheduler
+    
+    entrypoint: > ## airflow connection 설정하는 커맨드
+     bash -c "airflow connections --add --conn_id=spark_conn --conn_type=spark --conn_extra='{ \"host\":\"spark://spark-master:7077\", \"deploy_mode\": \"client\", \"spark_binary\": \"spark-submit\"}' &&
+       exec airflow webserver"
+    command: webserver
+    
+
+  scheduler:
+    <<: *airflow-common
+    command: bash -c "airflow db init && airflow db migrate && airflow users create --username airflow --firstname airflow --lastname airflow --role Admin --email airflow@gmail.com --password airflow && airflow scheduler"
+    
+
+networks:
+  default-network:
