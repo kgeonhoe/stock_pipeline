@@ -15,9 +15,7 @@ import pymysql
 def is_running_in_airflow(): 
     return "AIRFLOW_HOME" in os.environ
 
-
 if __name__ == "__main__":
-    
     if is_running_in_airflow(): 
         file_path = '/opt/bitnami/spark'
         print("This script is running within Apache Airflow.")
@@ -30,15 +28,15 @@ if __name__ == "__main__":
     collector = Collector(   appkey= cf.appkey
                             ,appsecret= cf.appsecret
                             ,virtual_accountYN = True)
-    
-    conn = pymysql.connect(host=cf.host, user=cf.username, passwd=cf.password, port=cf.port,database=cf.database, use_unicode=True, charset='utf8')
+
+    conn = pymysql.connect(host=cf.host, user=cf.username, passwd=cf.password, port=cf.port,database='airflow_daily_craw', use_unicode=True, charset='utf8')
     cursor = conn.cursor()
    
     try : 
         all_stocks = pd.read_json(file_path + '/data/'+ 'all_stocks.json')
         if not all_stocks.etldate[0] == datetime.datetime.now().strftime('%Y%m%d') : 
             all_stocks = collector.kis_get_all_stock()
-            all_stocks['etldate'] = datetime.now().strftime('%Y%m%d') 
+            all_stocks['etldate'] = datetime.datetime.now().strftime('%Y%m%d') 
             all_stocks['etlcheck'] = None
             all_stocks.to_json(file_path + '/data/' + 'all_stocks.json')
     except : 
@@ -71,7 +69,7 @@ if __name__ == "__main__":
     for idx, df in enumerate([all_stocks_df, all_stock_changed_df]) : 
         for _, stock_data in df.iterrows(): 
             if idx == 1 : 
-                filter.drop_mysql(stock_data.stockCode)
+                filter.drop_table_mysql(stock_data.stockCode)
             if not filter.check_lastdate_mysql(stock_data.stockCode) == None : 
                 datefrom = filter.check_lastdate_mysql(stock_data.stockCode)
                 datefrom = (datetime.datetime.strptime(datefrom,'%Y%m%d') + timedelta(days=1)).strftime('%Y%m%d')
@@ -82,7 +80,7 @@ if __name__ == "__main__":
             date_iter = filter.date_range(stock_data.stockCode, datefrom, datetime.datetime.now().strftime('%Y%m%d'))
             for stockCode, datefrom, dateto in date_iter: 
                 filter.crawl_mysql(stockCode,datefrom, dateto)
-            all_stocks.loc[all_stocks['stockCode'] == stockCode, 'etlcheck'] =datetime.datetime.now()
+            all_stocks.loc[all_stocks['stockCode'] == stock_data.stockCode, 'etlcheck'] =datetime.datetime.now()
             # filter.crawl(stockCode,datefrom, dateto)
     
     # for _, stock_data in 

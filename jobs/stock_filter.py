@@ -148,6 +148,7 @@ class StockFilter(BaseFilter):
                 continue 
             else : 
                 df = pd.DataFrame(dict(zip(['stockdate', 'stockclose', 'stockopen', 'stockhigh', 'stocklow', 'stockvolume', 'stockpricevolume'],data)))
+                df['code'] = code
                 new_spark_df = self.spark.createDataFrame(df, stock_schema)
                 # combined_df = df_origin.union(new_spark_df)
                 new_spark_df.write.format("org.elasticsearch.spark.sql")\
@@ -155,7 +156,7 @@ class StockFilter(BaseFilter):
                     .option("es.nodes", "http://localhost:9200") \
                     .option("es.port", "9200") \
                     .option("es.nodes.discovery", "true") \
-                    .option("es.resource", code) \
+                    .option("es.resource", 'crawl_tbl') \
                     .save()
         
     

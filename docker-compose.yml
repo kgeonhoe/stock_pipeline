@@ -168,17 +168,11 @@ services:
       - "8081:8080"
     depends_on:
       - scheduler
-    
-    entrypoint: > ## airflow connection 설정하는 커맨드
-     bash -c "airflow connections --add --conn_id=spark_conn --conn_type=spark --conn_extra='{ \"host\":\"spark://spark-master:7077\", \"deploy_mode\": \"client\", \"spark_binary\": \"spark-submit\"}' &&
-       exec airflow webserver"
     command: webserver
     
-
   scheduler:
     <<: *airflow-common
     command: bash -c "airflow db init && airflow db migrate && airflow users create --username airflow --firstname airflow --lastname airflow --role Admin --email airflow@gmail.com --password airflow && airflow scheduler"
-    
 
 networks:
   default-network:
