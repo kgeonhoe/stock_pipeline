@@ -169,9 +169,9 @@ services:
     depends_on:
       - scheduler
     
-    entrypoint: > ## airflow connection 설정하는 커맨드
-     bash -c "airflow connections --add --conn_id=spark_conn --conn_type=spark --conn_extra='{ \"host\":\"spark://spark-master:7077\", \"deploy_mode\": \"client\", \"spark_binary\": \"spark-submit\"}' &&
-       exec airflow webserver"
+    # entrypoint: > ## airflow connection 설정하는 커맨드
+    #  bash -c "airflow connections --add --conn_id=spark_conn --conn_type=spark --conn_extra='{ \"host\":\"spark://spark-master:7077\", \"deploy_mode\": \"client\", \"spark_binary\": \"spark-submit\"}' &&
+    #    exec airflow webserver"
     command: webserver
     
 

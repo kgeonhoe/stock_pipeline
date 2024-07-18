@@ -21,10 +21,10 @@ class Collector:
         
     # kis_get_values 함수 정의
     def kis_get_values(self, code, time_from, time_to):
-        time.sleep(0.5)
+        time.sleep(0.2)
         time_from = datetime.strptime(time_from, "%Y%m%d")
         time_to = datetime.strptime(time_to, "%Y%m%d")
-        try:
+        try: 
             prices = self.kis.stock(code).period_price(time_from, time_to)
             stockdate = [p.stck_bsop_date.strftime("%Y%m%d") for p in prices.prices]
             stockclose = [p.stck_clpr for p in prices.prices]
