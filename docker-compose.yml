@@ -174,11 +174,9 @@ services:
     #    exec airflow webserver"
     command: webserver
     
-
   scheduler:
     <<: *airflow-common
     command: bash -c "airflow db init && airflow db migrate && airflow users create --username airflow --firstname airflow --lastname airflow --role Admin --email airflow@gmail.com --password airflow && airflow scheduler"
-    
 
 networks:
   default-network:
