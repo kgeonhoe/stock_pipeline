@@ -35,12 +35,17 @@ start = PythonOperator(
 )
 
 # Python 파일 실행 태스크
-python_job = BashOperator(
+crawl_main = BashOperator(
     task_id="run_python_script",
-    bash_command="python /opt/airflow/jobs/main.py",  # 여기에 실제 Python 파일 경로를 넣으세요
+    bash_command="python /opt/airflow/jobs/stock_crawl_main.py",  # 여기에 실제 Python 파일 경로를 넣는다
     dag=dag
 )
 
+filter_data = BashOperator( 
+            task_id = 'filter-data', 
+            bash_command = "/opt/airflow/jobs/spark-submit.sh /opt/airflow/jobs/stock_add_colume.py",
+            dag=dag
+   )
 
 end = PythonOperator(
     task_id="end",
@@ -48,7 +53,7 @@ end = PythonOperator(
     dag=dag
 )
 
-start >> python_job >> end 
+start >> crawl_main >> end 
 
 # dag = DAG("download-github-archive", 
 #           default_args=default_args, 
