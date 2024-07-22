@@ -33,34 +33,6 @@ class StockFilter(BaseFilter):
         date_ranges = self.collector.generate_date_ranges(datefrom, dateto, 30)
         date_data = [(code, date_range[0], date_range[1]) for date_range in date_ranges]
         return date_data
-    
-    def check_lastdate(self, code) : 
-        import os
-        # from elasticsearch import Elasticsearch
-        os.environ['PYSPARK_SUBMIT_ARGS'] = \
-            '--jars ' + self.file_path + '/resources/elasticsearch-spark-30_2.12-8.4.3.jar pyspark-shell'
-        
-        # es = Elasticsearch("http://localhost:9200")
-        # self.es
-        # indices = es.indices.get_alias(f"{code}")
-        query = {
-            "size" : 1, 
-            "sort" : [
-                {
-                    "stockdate" : {"order" : 'desc'} 
-                }  
-            ],
-            "query" : {
-                "term" : {"code":code}
-                       },
-            "_source" : ["crawl_tbl"]
-        }
-        response = self.es.search(index='crawl_tbl', body = query)
-        if response['hits']['hits']: 
-            last_date = response['hits']['hits'][0]['_source']['stockdate'] 
-            return last_date 
-        else : 
-            return None 
         
         # db 에 저장되어있는 마지막 날짜를 가지고 오기 
     
@@ -107,36 +79,6 @@ class StockFilter(BaseFilter):
         except : 
             pass 
     
-    
-    def idx_generate(self, index_name) : 
-        if not self.es.indices.exists(index=index_name):
-    # 인덱스 생성
-            self.es.indices.create(index=index_name, body={
-                "settings": {
-                    "number_of_shards": 1,
-                    "number_of_replicas": 1
-                }
-            })
-            print(f"Index '{index_name}' has been created.")
-        else:
-            print(f"Index '{index_name}' already exists.")
-    
-    
-    
-    def drop_es(self, code) : 
-        query = { 
-                 "query" : {
-                     "term" : {
-                         "code" : code
-                     }
-            
-                 }
-                 
-                 }
-        response = self.es.delete_by_query(index="crawl_tbl", body = query) 
-        print(response)
-    
-
     def crawl_mysql(self,code,datefrom,dateto) :         
         # if not self.check_lastdate_mysql(code).iloc[0,0] == None : 
         #     datefrom = self.check_lastdate_mysql(code).iloc[0,0]
@@ -189,25 +131,3 @@ class StockFilter(BaseFilter):
                 # combined_df = df_origin.union(new_spark_df)
     
     
-    def crawl(self, code, datefrom, dateto) :
-        for code, datefrom ,dateto in self.date_range(code, datefrom, dateto) : 
-            data = self.collector.kis_get_values(code, datefrom, dateto)
-            if data == None : 
-                continue 
-            else : 
-                df = pd.DataFrame(dict(zip(['stockdate', 'stockclose', 'stockopen', 'stockhigh', 'stocklow', 'stockvolume', 'stockpricevolume'],data)))
-                df['code'] = code
-                new_spark_df = self.spark.createDataFrame(df, stock_schema)
-                # combined_df = df_origin.union(new_spark_df)
-                new_spark_df.write.format("org.elasticsearch.spark.sql")\
-                    .mode("append") \
-                    .option("es.nodes", "http://localhost:9200") \
-                    .option("es.port", "9200") \
-                    .option("es.nodes.discovery", "true") \
-                    .option("es.resource", 'crawl_tbl') \
-                    .save()
-        
-    
-    def save_es() : 
-        ## spark tkdyd
-        pass 

@@ -112,7 +112,6 @@ services:
       # - SPARK_HOME=/path/to/spark ## 20240526 vscode내에서 실행하기 위해 설정 
       # - PATH=$PATH:$SPARK_HOME/bin:$JAVA_HOME/bin ## 20240526 vscode내에서 실행하기 위해 설정 
 
-
   es:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.4.3
     networks:
