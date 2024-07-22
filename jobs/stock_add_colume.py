@@ -110,7 +110,7 @@ if __name__ == "__main__":
                 # with self.cursor as cursor : 
                 create_table_query = f"""
                 CREATE TABLE IF NOT EXISTS `{tbl_name}` (
-                stockdate VARCHAR(8) NOT NULL
+                 stockdate VARCHAR(8) NOT NULL
                 ,stockcode varchar(6) NOT NULL
                 ,EAVG_Close_5 FLOAT 
                 ,EAVG_Volume_5 FLOAT 
