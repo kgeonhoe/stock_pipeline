@@ -21,7 +21,7 @@ default_args = {
     # "on_failure_callback": ,
 }
  
-dag = DAG("download-stock-data", 
+dag = DAG("add_column", 
           default_args=default_args, 
           max_active_runs=1, 
           schedule_interval="31 15 * * *", 
@@ -35,17 +35,19 @@ start = PythonOperator(
 )
 
 # Python 파일 실행 태스크
-crawl_main = BashOperator(
-    task_id="run_python_script",
-    bash_command="python /opt/airflow/jobs/stock_crawl_main.py",  # 여기에 실제 Python 파일 경로를 넣는다
-    dag=dag
-)
-
+# crawl_main = BashOperator(
+#     task_id="run_python_script",
+#     bash_command="python /opt/airflow/jobs/stock_crawl_main.py",  # 여기에 실제 Python 파일 경로를 넣는다
+#     dag=dag
+# )
+         
+jar_path = '/opt/bitnami/spark/resources/mysql-connector-java-8.0.29/mysql-connector-java-8.0.29.jar'
+python_path = '/opt/airflow/jobs/stock_add_colume.py'
 filter_data = BashOperator( 
             task_id = 'filter-data', 
-            bash_command = "/opt/airflow/jobs/spark-submit.sh /opt/airflow/jobs/stock_add_colume.py",
+            bash_command = f"/opt/airflow/jobs/spark-submit.sh --driver-class-path {jar_path} --jars {jar_path} {python_path} ",
             dag=dag
-   )
+                           )
 
 end = PythonOperator(
     task_id="end",
@@ -53,7 +55,7 @@ end = PythonOperator(
     dag=dag
 )
 
-start >> crawl_main >> end 
+start >> filter_data >> end 
 
 # dag = DAG("download-github-archive", 
 #           default_args=default_args, 

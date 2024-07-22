@@ -2,7 +2,6 @@ import airflow
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.operators.bash import BashOperator
-from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 from datetime import datetime, timedelta
 
  # 각각의 별표(*)는 다음과 같은 의미를 가집니다.
@@ -16,12 +15,12 @@ default_args = {
     "owner": "airflow",
     "depends_on_past": False,
     "start_date": airflow.utils.dates.days_ago(1),
-    "retries": 1,
+    # "retries": 1,
     "retry_delay": timedelta(minutes=2),
     # "on_failure_callback": ,
 }
  
-dag = DAG("download-stock-data", 
+dag = DAG("for_merge", 
           default_args=default_args, 
           max_active_runs=1, 
           schedule_interval="31 15 * * *", 
@@ -35,17 +34,12 @@ start = PythonOperator(
 )
 
 # Python 파일 실행 태스크
-crawl_main = BashOperator(
+python_job = BashOperator(
     task_id="run_python_script",
-    bash_command="python /opt/airflow/jobs/stock_crawl_main.py",  # 여기에 실제 Python 파일 경로를 넣는다
+    bash_command="python /opt/airflow/jobs/for_merge.py",  # 여기에 실제 Python 파일 경로를 넣으세요
     dag=dag
 )
 
-filter_data = BashOperator( 
-            task_id = 'filter-data', 
-            bash_command = "/opt/airflow/jobs/spark-submit.sh /opt/airflow/jobs/stock_add_colume.py",
-            dag=dag
-   )
 
 end = PythonOperator(
     task_id="end",
@@ -53,7 +47,7 @@ end = PythonOperator(
     dag=dag
 )
 
-start >> crawl_main >> end 
+start >> python_job >> end 
 
 # dag = DAG("download-github-archive", 
 #           default_args=default_args, 
