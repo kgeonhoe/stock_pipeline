@@ -21,7 +21,7 @@ class StockFilter(BaseFilter):
     def __init__(self, args) : 
         self.args = args 
         self.spark = args.spark 
-        self.es = args.es
+        # self.es = args.es
         self.conn = args.conn 
         self.cursor = args.cursor 
         self.file_path = args.file_path
