@@ -21,7 +21,7 @@ class Collector:
         
     # kis_get_values 함수 정의
     def kis_get_values(self, code, time_from, time_to):
-        time.sleep(0.2)
+        time.sleep(1)
         time_from = datetime.strptime(time_from, "%Y%m%d")
         time_to = datetime.strptime(time_to, "%Y%m%d")
         try: 
@@ -57,7 +57,7 @@ class Collector:
         stockCode = []
         stockName = []
         priceChange = []
-        lastdate = []
+        listeddate = []
         for stock in chain(kis.market.kospi.all(), kis.market.kosdaq.all()) : 
             if (len(stock.mksc_shrn_iscd) == 6) & (stock.prst_cls_code == '0') & (stock.scrt_grp_cls_code == 'ST'): 
             # prst_cls_code : 우선주 보통주 여부 
@@ -65,7 +65,7 @@ class Collector:
                 stockCode.append(stock.mksc_shrn_iscd) # 코드 번호 
                 stockName.append(stock.hts_kor_isnm) # 코드 이름 
                 priceChange.append(stock.fcam_mod_cls_code) #  액면가 변경 구분 코드 (00:해당없음 01:액면분할 02:액면병합 99:기타   
-                lastdate.append(stock.stck_lstn_date) # 주식의 마지막 날짜
+                listeddate.append(stock.stck_lstn_date.strftime('%Y%m%d')) # 주식의 마지막 날짜
                 
-        kis_stock_df = pd.DataFrame({"stockCode": stockCode, "stockName" : stockName, "priceChange" : priceChange, "lastdate": lastdate})       
+        kis_stock_df = pd.DataFrame({"stockCode": stockCode, "stockName" : stockName, "priceChange" : priceChange, "listeddate": listeddate})       
         return kis_stock_df

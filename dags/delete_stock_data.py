@@ -4,7 +4,7 @@ from airflow.operators.python import PythonOperator
 from airflow.operators.bash import BashOperator
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 from datetime import datetime, timedelta
-
+import pendulum
  # 각각의 별표(*)는 다음과 같은 의미를 가집니다.
  # 분(Minute) : 0부터 59까지의 값을 가집니다.
  # 시간(Hour) : 0부터 23까지의 값을 가집니다.
@@ -15,7 +15,9 @@ from datetime import datetime, timedelta
 default_args = {
     "owner": "airflow",
     "depends_on_past": False,
-    "start_date": airflow.utils.dates.days_ago(1),
+    # "start_date": airflow.utils.dates.days_ago(1),
+    'start_date' : datetime(2024,7,23, tzinfo = pendulum.timezone("Asia/Seoul")),
+    
     "retries": 1,
     "retry_delay": timedelta(minutes=2),
     # "on_failure_callback": ,
@@ -25,7 +27,8 @@ dag = DAG("delete_stock_data",
           default_args=default_args, 
           description = '증권 테이블 날리는 함수', 
           max_active_runs=1, 
-          schedule_interval= None,
+        #   schedule_interval= None,
+          schedule_interval= "31 20 * * *", 
           catchup=False, 
           tags=['data'])
 

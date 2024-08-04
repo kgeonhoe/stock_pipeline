@@ -17,7 +17,7 @@ def airflow_file_path_setting() :
         file_path = '/opt/bitnami/spark'
         print("This script is running within Apache Airflow.")     
     else:
-        file_path = '/root/project/de-2024'
+        file_path = '/home/grey/stock_pipeline'
         # Airflow에서 실행될 때 수행할 코드
         # 여기에 Airflow에서 실행될 코드 로직을 추가하세요.
         print("This script is running as a standalone Python script.")

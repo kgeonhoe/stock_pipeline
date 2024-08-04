@@ -4,6 +4,8 @@ from airflow.operators.python import PythonOperator
 from airflow.operators.bash import BashOperator
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 from datetime import datetime, timedelta
+import pendulum
+
 
  # 각각의 별표(*)는 다음과 같은 의미를 가집니다.
  # 분(Minute) : 0부터 59까지의 값을 가집니다.
@@ -15,7 +17,8 @@ from datetime import datetime, timedelta
 default_args = {
     "owner": "airflow",
     "depends_on_past": False,
-    "start_date": airflow.utils.dates.days_ago(1),
+    # "start_date": airflow.utils.dates.days_ago(1),
+    'start_date' : datetime(2024,7,23, tzinfo = pendulum.timezone("Asia/Seoul")),
     "retries": 1,
     "retry_delay": timedelta(minutes=2),
     # "on_failure_callback": ,
@@ -36,7 +39,7 @@ start = PythonOperator(
 
 # Python 파일 실행 태스크
 crawl_main = BashOperator(
-    task_id="run_python_script",
+    task_id="crawl_main",
     bash_command="python /opt/airflow/jobs/stock_crawl_main.py",  # 여기에 실제 Python 파일 경로를 넣는다
     dag=dag
 )
@@ -47,13 +50,19 @@ filter_data = BashOperator(
             dag=dag
    )
 
+delete_data = BashOperator(
+    task_id="delete_data",
+    bash_command="python /opt/airflow/jobs/delete_all_stock_data.py",  # 여기에 실제 Python 파일 경로를 넣으세요
+    dag=dag
+)
+
 end = PythonOperator(
     task_id="end",
     python_callable = lambda: print("Jobs completed successfully"),
     dag=dag
 )
 
-start >> crawl_main >> end 
+start >> delete_data >> crawl_main >> filter_data >> end 
 
 # dag = DAG("download-github-archive", 
 #           default_args=default_args, 

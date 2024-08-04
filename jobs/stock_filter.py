@@ -21,7 +21,6 @@ class StockFilter(BaseFilter):
     def __init__(self, args) : 
         self.args = args 
         self.spark = args.spark 
-        # self.es = args.es
         self.conn = args.conn 
         self.cursor = args.cursor 
         self.file_path = args.file_path
@@ -34,22 +33,61 @@ class StockFilter(BaseFilter):
         date_ranges = self.collector.generate_date_ranges(datefrom, dateto, 30)
         date_data = [(code, date_range[0], date_range[1]) for date_range in date_ranges]
         return date_data
-        
-        # db 에 저장되어있는 마지막 날짜를 가지고 오기 
     
-    def check_lastdate_mysql(self,code) : 
-        try :
-            last_date_query = f"""
-                SELECT MAX(stockdate) FROM `{code}`
+    def last_date_df(self) : 
+        last_sql = """
+        SELECT t1.*
+            FROM all_stock t1
+            INNER JOIN (
+                SELECT stockcode, MAX(stockdate) AS max_stockdate
+                FROM all_stock
+                GROUP BY stockcode
+            ) t2 ON t1.stockcode = t2.stockcode 
+            AND t1.stockdate = t2.max_stockdate;
+        """
+        df_lastdate_mysql = pd.read_sql(last_sql,self.conn)
+        return df_lastdate_mysql
+ 
+    def all_stock_list(self) : 
+        insert_query = """INSERT IGNORE INTO all_stock_list (
+                 stockCode
+                ,stockName
+                ,priceChange
+                ,listeddate
+                ,etldate
+                ,etlcheck
+            )
+            VALUES (%s,%s,%s,%s,%s,%s)"""
+        try : 
+            create_table_query = f"""
+            CREATE TABLE IF NOT EXISTS `all_stock_list` (
+             stockCode VARCHAR(8) NOT NULL
+            ,stockName varchar(6) NOT NULL
+            ,priceChange text NOT NULL
+            ,listeddate text NOT NULL 
+            ,etldate text NOT NULL
+            ,etlcheck text NOT NULL
+            )
             """
-            df = pd.read_sql(last_date_query,self.conn)
-            return df.iloc[0,0]
+            self.cursor.execute(create_table_query)
+            
+            all_stocks = pd.read_sql('select * from all_stock_list', self.conn)
+            if not all_stocks.etldate[0] == datetime.datetime.now().strftime('%Y%m%d') : 
+                self.cursor.execute('delete * from all_stock_list')
+                all_stocks = self.collector.kis_get_all_stock()
+                all_stocks['etldate'] = datetime.datetime.now().strftime('%Y%m%d') 
+                all_stocks['etlcheck'] = None
+                for row in all_stocks.itertuples(index=False, name=None):
+                    self.cursor.execute(insert_query, row)
         except : 
             all_stocks = self.collector.kis_get_all_stock()
             all_stocks['etldate'] = datetime.datetime.now().strftime('%Y%m%d') 
             all_stocks['etlcheck'] = None
-            all_stocks.to_json(self.file_path + '/data/' + 'all_stocks.json')
-        
+            
+            for row in all_stocks.itertuples(index=False, name=None):
+                self.cursor.execute(insert_query, row)
+
+        self.conn.commit()
         return all_stocks
         
     def get_all_stock_mysql(self, schema_name) : 
@@ -86,6 +124,7 @@ class StockFilter(BaseFilter):
         except : 
             pass 
     
+
     def crawl_mysql(self,code,datefrom,dateto) :         
         # if not self.check_lastdate_mysql(code).iloc[0,0] == None : 
         #     datefrom = self.check_lastdate_mysql(code).iloc[0,0]
