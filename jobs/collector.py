@@ -9,13 +9,16 @@ from dateutil.relativedelta import relativedelta
 
 
 class Collector: 
-    def __init__(self, appkey , appsecret , virtual_accountYN : bool): 
+    def __init__(self, appkey , appsecret , virtual_accountYN : bool, account_id): 
         print("__init__ 함수에 들어왔습니다.")
     
         self.kis = PyKis(
-                        appkey= appkey
-                       ,appsecret= appsecret
-                       ,virtual_account= virtual_accountYN
+                        id= account_id
+                       ,appkey= appkey
+                       ,secretkey= appsecret
+                       ,virtual_id= account_id if virtual_accountYN else None
+                       ,virtual_appkey= appkey if virtual_accountYN else None
+                       ,virtual_secretkey= appsecret if virtual_accountYN else None
                          )
         
         

@@ -1,0 +1,10 @@
+apache-airflow==2.7.1
+apache-airflow-providers-apache-spark
+pyspark
+elasticsearch
+pandas
+numpy
+python-kis
+pymysql
+pyarrow
+python-dateutil

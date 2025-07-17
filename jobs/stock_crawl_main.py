@@ -13,6 +13,9 @@ from pyspark.sql.types import StructType, StructField, StringType, LongType
 import pymysql 
 import logging
 import os_setting
+import time
+import pandas as pd
+from dateutil.relativedelta import relativedelta
 
                     
 #%%
@@ -21,8 +24,9 @@ if __name__ == "__main__":
     ## NOTE data 파일경로 잡아주는 목적 
     file_path = os_setting.airflow_file_path_setting()
     collector = Collector(   appkey= cf.appkey
-                            ,appsecret= cf.appsecret
-                            ,virtual_accountYN = True)
+                            ,appsecret= cf.secretkey
+                            ,virtual_accountYN = True
+                            ,account_id= cf.account_id)
     conn = pymysql.connect(host=cf.host, user=cf.username, passwd=cf.password, port=cf.port,database='airflow_daily_craw', use_unicode=True, charset='utf8')
     cursor = conn.cursor()
    

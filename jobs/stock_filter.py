@@ -25,8 +25,9 @@ class StockFilter(BaseFilter):
         self.cursor = args.cursor 
         self.file_path = args.file_path
         self.collector =  Collector(appkey= cf.appkey
-                            ,appsecret= cf.appsecret
-                            ,virtual_accountYN = True)
+                            ,appsecret= cf.secretkey
+                            ,virtual_accountYN = True
+                            ,account_id= cf.account_id)
             
         
     def date_range(self, code, datefrom, dateto) : 
